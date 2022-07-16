@@ -1,45 +1,49 @@
-import * as React from 'react';
-import {createRoot} from 'react-dom/client';
+import * as React from "react";
+import { createRoot } from "react-dom/client";
+import mermaid from "mermaid";
+import { getSelectionPlainText } from "./utils";
 
-async function addSticky() {
-  const stickyNote = await miro.board.createStickyNote({
-    content: 'Hello, World!',
-  });
-
-  await miro.board.viewport.zoomTo(stickyNote);
-}
-
+const renderContainer = "renderContainer";
 function App() {
-  React.useEffect(() => {
-    addSticky();
-  }, []);
+    const svgRenderRef = React.useRef<HTMLDivElement>(null);
+    const [error, setError] = React.useState<string>();
 
-  return (
-    <div className="grid wrapper">
-      <div className="cs1 ce12">
-        <img src="/src/assets/congratulations.png" alt="" />
-      </div>
-      <div className="cs1 ce12">
-        <h1>Congratulations!</h1>
-        <p>You've just created your first Miro app!</p>
-        <p>
-          To explore more and build your own app, see the Miro Developer
-          Platform documentation.
-        </p>
-      </div>
-      <div className="cs1 ce12">
-        <a
-          className="button button-primary"
-          target="_blank"
-          href="https://developers.miro.com"
-        >
-          Read the documentation
-        </a>
-      </div>
-    </div>
-  );
+    const mermaidRender = (content: string) => {
+        const svgResult = mermaid.render(renderContainer, content);
+        console.log({ svgResult });
+        if (svgRenderRef.current) {
+            svgRenderRef.current.innerHTML = svgResult;
+        }
+    };
+
+    React.useEffect(() => {
+        getSelectionPlainText().then((result) => {
+            if (result.type === "error") {
+                setError(result.message);
+            }
+
+            if (result.type === "success" && result.payload.length) {
+                mermaidRender(result.payload);
+            }
+        });
+    }, []);
+
+    return (
+        <div className="grid wrapper">
+            <div className="cs1 ce12">
+                {error && (
+                    <div className="form-group">
+                        {" "}
+                        <label>Error</label> <p>{error}</p>{" "}
+                    </div>
+                )}
+                <div ref={svgRenderRef}></div>
+                <div id={renderContainer}></div>
+            </div>
+        </div>
+    );
 }
 
-const container = document.getElementById('root');
+const container = document.getElementById("root");
 const root = createRoot(container);
 root.render(<App />);
